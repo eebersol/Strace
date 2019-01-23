@@ -2,6 +2,7 @@
 
 
 pid_t child;
+int status;
 
 int wait_for_syscall(pid_t child) {
     int status;
@@ -76,30 +77,18 @@ void 	get_data(long reg, int flag)
 }
 
 int do_trace(pid_t child) {
-    int status;
-    int syscall;
-    int retval;
-    int old;
-    long reg[6] = {0};
+    struct  user_regs_struct regs;
+    int     old;
 
     old = 0;
     waitpid(child, &status, 0);
     ptrace(PTRACE_SETOPTIONS, child, 0, PTRACE_O_TRACESYSGOOD);
-    struct user_regs_struct regs;
     while (42) {
         if (wait_for_syscall(child) != 0)
             break;
         ptrace(PTRACE_GETREGS, child, NULL, &regs);
-        if (regs.orig_rax == SYS_clone)
-                return 0;
-        if (regs.orig_rax == SYS_exit_group)
-        {
-            if (regs.rdi)
-                get_data(regs.rdi, 0);
-            else
-                printf("0");
-        }
-        else {
+
+        if (old != regs.orig_rax) {
              printf("%s", get_syscall_name(regs.orig_rax));
             if (regs.rdi) get_data(regs.rdi, 0);
             else printf("0");
@@ -112,23 +101,22 @@ int do_trace(pid_t child) {
             old = regs.orig_rax;
             printf("\n");
         }
-        if (wait_for_syscall(child) != 0) 
-            break;
-        // retval = ptrace(PTRACE_PEEKUSER, child, sizeof(long)*EAX);
-        // fprintf(stderr, "%d\n", retval);
     }
     return (0);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv, char **env) {
     if (argc < 2) {
         fprintf(stderr, "Usage: %s prog args\n", argv[0]);
         exit(1);
     }
     child = fork();
     if (child == 0) {
-        return do_child(argc-1, argv+1);
+        execve(argv[1], NULL, env);
     } else {
-        return do_trace(child);
+        ptrace(PTRACE_SEIZE, child, 0, 0);
+		ptrace(PTRACE_SYSCALL, child, 0, 0);
+		ptrace(PTRACE_INTERRUPT, child, 0, 0);
+        do_trace(child);
     }
 }
