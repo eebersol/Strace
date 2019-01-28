@@ -1,6 +1,7 @@
 SRC = main.c
 SRC += syscall.c
-# SRC += errno.c
+SRC += strjoin.c
+SRC += errno.c
 # SRC += signal.c
 # SRC += strace_lib.c
 # SRC += strace_lib2.c

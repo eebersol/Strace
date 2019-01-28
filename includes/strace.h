@@ -17,4 +17,8 @@
 # define EAX 6
 
 
-char *get_syscall_name(int key);
+int    get_syscall_name(int key);
+int     get_errno_name(int key);
+
+char	*ft_strjoin(char const *s1, char const *s2);
+char	*ft_strfjoin(char *s1, char *s2);
