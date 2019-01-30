@@ -1,163 +1,75 @@
 #include "../includes/strace.h"
-
+#include "../includes/syscalls_table.h"
 
 pid_t   child;
 int     status;
-long    reg_tab[6];
+sigset_t sig;
+sigset_t sig_blocker;
 
-int wait_for_syscall(pid_t child) {
-    int status;
+
+int wait_for_syscall() {
     while (1) {
         ptrace(PTRACE_SYSCALL, child, 0, 0);
         waitpid(child, &status, 0);
         if (WIFSTOPPED(status) && WSTOPSIG(status) & 0x80)
             return (0);
         if (WIFEXITED(status))
-            return (1);
+            return (1); 
+        if (WIFSIGNALED(status) || WTERMSIG(status)) {
+            if (WEXITSTATUS(status) == SIGINT) {
+                printf("./ft_strace : Process detached : %d\n", child);
+                exit(0);
+            }
+            else if (WIFEXITED(status))
+              return (1);
+            else
+                return (0);
+        }
     }
 }
-int do_child(int argc, char **argv) {
-    char *args [argc+1];
-    
-    memcpy(args, argv, argc * sizeof(char*));
-    args[argc] = NULL;
-    kill(getpid(), SIGSTOP);
-    return execvp(args[0], args);
-}
 
-int	is_print(char c)
-{
-	if (isprint(c) || c == '\n')
-		return (1);
-	return (0);
-}
+void set_sigs(void) {
 
-
-
-int	is_printable(char *str)
-{
-	int i = -1;
-
-	while (str && str[++i])
-	{
-		if  (!is_print(str[i]))
-			return (0);
-	}
-	if (i == 0)
-		return (0);
-	return (1);
-}
-
-// void 	get_data(long reg, int flag)
-// {
-// 	long res;
-// 	char message[10000];
-// 	char *temp;
-// 	int i = -1;
-//     int test =
-// 	temp = message;
-// 	res = 100;
-
-// 	while (++i < 8)
-// 	{
-// 		res = ptrace(PTRACE_PEEKDATA, child, reg + i * 8, NULL);
-// 		memcpy(temp, &res, 8);
-// 		temp += 8;
-// 	}
-// 	if (!errno) {
-// 		if (is_printable(message))
-// 			printf("\"%s\"", (message));
-// 		else
-// 			printf("%p", message);
-//     }
-// 	else 
-// 		printf("%ld", strerror(errno), reg);
-// }
-
-void 	get_data(struct user_regs_struct regs)
-{
-	char message[1000];
-    char* temp_char2 = message;
-    int j = 0;
-    long temp_long;
-
-    printf("Rdx : %lld Rsi : %lld", regs.rdx, regs.rsi);
-    while( j < (regs.orig_rax/8) ) //regs.rdx stores the size of the input buffer
-    {
-        printf("1");
-        temp_long = ptrace(PTRACE_PEEKDATA, child, regs.rsi + (j*8) , NULL);
-        memcpy(temp_char2, &temp_long, 8);
-        temp_char2 += sizeof(long);
-        ++j;
-    }
-    // message[regs.rdx] = '\0';
-    printf("Message-%s-\n\n", message);
-}
-void    set_register_array(struct  user_regs_struct regs) {
-    reg_tab[0] = regs.rdi;
-    reg_tab[1] = regs.rsi;
-    reg_tab[2] = regs.rdx;
-    reg_tab[3] = regs.r10;
-    reg_tab[4] = regs.r8;
-    reg_tab[5] = regs.r9;
+    sigemptyset(&sig);
+    sigemptyset(&sig_blocker);
+    sigprocmask(SIG_SETMASK, &sig, NULL);
+    waitpid(child, &status, 0);
+    ptrace(PTRACE_SETOPTIONS, child, 0, PTRACE_O_TRACESYSGOOD);
+    sigaddset(&sig_blocker, SIGQUIT);
+    sigaddset(&sig_blocker, SIGHUP);
+    sigaddset(&sig_blocker, SIGINT);
+    sigaddset(&sig_blocker, SIGPIPE);
+    sigaddset(&sig_blocker, SIGTERM);
+    sigprocmask(SIG_BLOCK, &sig_blocker, NULL);
 }
 int do_trace(pid_t child) {
     struct  user_regs_struct regs;
     int     old;
     int      flag;
     long    ret;
-    int     nbr_arg;
 
     old = 0;
     flag = 0;
-    nbr_arg = 0;
-    waitpid(child, &status, 0);
-    ptrace(PTRACE_SETOPTIONS, child, 0, PTRACE_O_TRACESYSGOOD);
+    set_sigs();
     while (42) {
-        if (wait_for_syscall(child) != 0)
+        if (wait_for_syscall() != 0) {
+            printf(" = ?\n+++ exited with");
+            get_signal_name(WEXITSTATUS(status));
+            printf("+++\n");
             break;
+        }
         ptrace(PTRACE_GETREGS, child, NULL, &regs);
-        set_register_array(regs);
         if (old != regs.orig_rax) {
             flag = 1;
-            nbr_arg = get_syscall_name(regs.orig_rax);
-            printf("(", nbr_arg);
-            // for (int i = 0; i < nbr_arg && nbr_arg <= 6; i++) {
-
-            //     // if (!reg_tab[0] && i == 0) {
-                //     printf("NULL");
-                //     if (nbr_arg == 1)
-                //         break;
-                //     else
-                //         printf(", ");
-                // }
-                // else if (reg_tab[i])
-                    get_data(regs);
-                // else
-                // {
-                //     if (i != 1)
-                //         printf("0");
-                //     nbr_arg++;
-                // }
-            //     if (i + 1 < nbr_arg && reg_tab[i])
-            //             printf(", ");
-            // }
+            print_syscall(child, regs, syscalls_table[regs.orig_rax], status);
             old = regs.orig_rax;
         }
         else if (regs.rax != SYS_exit_group && flag == 1)
         {
             flag = 0;
-            if ( (long)regs.rax == -1)
-                printf(") = ?\n", (long)regs.rax);
-            else if ( (long)regs.rax < -1) {
-                printf(") = -1 ");
-                get_errno_name(regs.rax);
-            }
-            else if ((long)regs.rax > 1000 || (long)regs.rax < -1000)
-                printf(") = %p\n", regs.rax);
-            else
-                printf(") = %ld\n", regs.rax);
+            print_syscall_return(regs);
         }
+        
     }
     return (0);
 }

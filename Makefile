@@ -2,7 +2,8 @@ SRC = main.c
 SRC += syscall.c
 SRC += strjoin.c
 SRC += errno.c
-# SRC += signal.c
+SRC += syscalls_list.c
+SRC += signal.c
 # SRC += strace_lib.c
 # SRC += strace_lib2.c
 
@@ -43,12 +44,10 @@ $(OBJ): $(OBJDIR)%.o: $(SRCDIR)%.c
 
 clean: start
 	@echo "$(CY)[FT_STRACE] :$(CE) $(CG)Cleaning ft_strace objects$(CE)";
-	-@make -C libft nohdclean;
 	@/bin/rm -rf $(OBJ);
 
 fclean: start clean
 	@echo "\033[K$(CY)[FT_STRACE] :$(CE) $(CG)Cleaning binairies ...$(CE)";
-	-@make -C libft nohdfclean;
 	@/bin/rm -f $(NAME);
 
 re: fclean all
