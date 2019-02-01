@@ -94,30 +94,48 @@ int do_trace(pid_t child) {
             // exit_group(1)                           = ?
             // +++ exited with 1 +++
 */
-int is_valid_file(char *file) {
-    int fd;
-    struct stat buf;
+char *is_valid_file(char *file, char **env) {
+    int     fd;
+    struct  stat buf;
+    char    **path_line;
+    char    **path_bin;
+    char    *tmp;
 
-    if ((file[0] != '.' || file[1] != '/') || stat(file, &buf) == -1) {
-          printf("strace: Can't stat '%s': No such file or directory.\n", file);
-        return (-1);
+    path_line   = NULL;
+    path_bin    = NULL;
+    tmp          = NULL;
+    for(int i = 0; env[i]; i++)
+    {   
+        path_line = ft_strsplit(env[i], '=');
+        if (strcmp(path_line[0], "PATH") == 0) {
+            path_bin = ft_strsplit(path_line[1], ':');
+            for (int j = 0; path_bin[j]; j++) {
+                path_bin[j] = ft_strjoin(path_bin[j], "/");
+                path_bin[j] = ft_strjoin(path_bin[j], file);
+                if (access(path_bin[j], F_OK) == 0)
+                    return (path_bin[j]);
+            }
+        }
     }
-    else
-        return (1);
+    if ((file[0] != '.' || file[1] != '/') || stat(file, &buf) != -1) {
+        printf("strace: Can't stat '%s': No such file or directory.\n", file);
+        exit(-1);
+    }
+    return (file);
 }
 
-
 int main(int argc, char **argv, char **env) {
+    char *cmd;
+
+    cmd = NULL;
     if (argc < 2) {
         fprintf(stderr, "Usage: %s prog args\n", argv[0]);
         exit(1);
     }
-    else if (is_valid_file(argv[1]) == -1) {
-        exit(1);
-    }
+    cmd = is_valid_file(argv[1], env);
     child = fork();
     if (child == 0) {
-        execve(argv[1], NULL, env);
+        execve(cmd, NULL, env);
     } else {
         ptrace(PTRACE_SEIZE, child, 0, 0);
 		ptrace(PTRACE_SYSCALL, child, 0, 0);

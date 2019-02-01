@@ -1,3 +1,4 @@
+#include "../libft/libft.h"
 #include <sys/types.h>
 #include <sys/ptrace.h>
 #include <sys/user.h>
@@ -14,7 +15,6 @@
 #include <syscalls_table.h>
 #include <linux/unistd.h>
 #include <fcntl.h>
-
 
 int     get_errno_name(int key);
 int     print_syscall(pid_t child, struct  user_regs_struct regs, t_syscall const syscall, int status);

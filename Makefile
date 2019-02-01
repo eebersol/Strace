@@ -4,9 +4,9 @@ SRC += strjoin.c
 SRC += errno.c
 SRC += syscalls_list.c
 SRC += signal.c
-# SRC += strace_lib.c
-# SRC += strace_lib2.c
 
+
+LIB				= ./libft/libft.a
 NAME = ft_strace
 SRCDIR = srcs/
 OBJDIR = objs/
@@ -18,12 +18,14 @@ CG = \033[92m
 CY =  \033[93m
 CE = \033[0m
 CB = \033[34m
-INC = -I ./includes/
+INC =  -I./libft/includes/   -I ./includes/
 
-all: start  $(NAME)
+all: start $(NAME)
+
 
 $(NAME): $(OBJ)
-	@gcc -o $(NAME) $(OBJ) $(FLAG) $(INC);
+	@make -C ./libft/
+	@gcc $(FLAG) -lm -L libft/ -lft  $(OBJ)  $(LIB) $(INC) -o $(NAME)
 	@echo "\033[K$(CY)[FT_STRACE] :$(CE) $(CG)Compiling ft_strace$(CE)";
 
 
@@ -44,10 +46,12 @@ $(OBJ): $(OBJDIR)%.o: $(SRCDIR)%.c
 
 clean: start
 	@echo "$(CY)[FT_STRACE] :$(CE) $(CG)Cleaning ft_strace objects$(CE)";
+	@make clean -C libft
 	@/bin/rm -rf $(OBJ);
 
 fclean: start clean
 	@echo "\033[K$(CY)[FT_STRACE] :$(CE) $(CG)Cleaning binairies ...$(CE)";
+	@make fclean -C libft
 	@/bin/rm -f $(NAME);
 
 re: fclean all
