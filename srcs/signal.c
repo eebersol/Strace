@@ -12,68 +12,68 @@
 
 #include "../includes/strace.h"
 
-void get_signal_name(int key)
+char *get_signal_name(int key)
 {
 	switch (key){
 		case (SIGHUP):
-			printf("SIGHUP");
+			return "SIGHUP";
 		case (SIGINT):
-			printf("SIGINT");
+			return "SIGINT";
 		case (SIGQUIT):
-			printf("SIGQUIT");
+			return "SIGQUIT";
 		case (SIGILL):
-			printf("SIGILL");
+			return "SIGILL";
 		case (SIGTRAP):
-			printf("SIGTRAP");
+			return "SIGTRAP";
 		case (SIGABRT):
-			printf("SIGABRT");
+			return "SIGABRT";
 		case (SIGBUS):
-			printf("SIGBUS");
+			return "SIGBUS";
 		case (SIGFPE):
-			printf("SIGFPE");
+			return "SIGFPE";
 		case (SIGKILL):
-			printf("SIGKILL");
+			return "SIGKILL";
 		case (SIGUSR1):
-			printf("SIGUSR1");
+			return "SIGUSR1";
 		case (SIGSEGV):
-			printf("SIGSEGV");
+			return "SIGSEGV";
 		case (SIGUSR2):
-			printf("SIGUSR2");
+			return "SIGUSR2";
 		case (SIGPIPE):
-			printf("SIGPIPE");
+			return "SIGPIPE";
 		case (SIGALRM):
-			printf("SIGALRM");
+			return "SIGALRM";
 		case (SIGTERM):
-			printf("SIGTERM");
+			return "SIGTERM";
 		case (SIGCHLD):
-			printf("SIGCHLD");
+			return "SIGCHLD";
 		case (SIGCONT):
-			printf("SIGCONT");
+			return "SIGCONT";
 		case (SIGSTOP):
-			printf("SIGSTOP");
+			return "SIGSTOP";
 		case (SIGTSTP):
-			printf("SIGTSTP");
+			return "SIGTSTP";
 		case (SIGTTIN):
-			printf("SIGTTIN");
+			return "SIGTTIN";
 		case (SIGTTOU):
-			printf("SIGTTOU");
+			return "SIGTTOU";
 		case (SIGURG):
-			printf("SIGURG");
+			return "SIGURG";
 		case (SIGXCPU):
-			printf("SIGXCPU");
+			return "SIGXCPU";
 		case (SIGVTALRM):
-			printf("SIGVTALRM");
+			return "SIGVTALRM";
 		case (SIGPROF):
-			printf("SIGPROF");
+			return "SIGPROF";
 		case (SIGWINCH):
-			printf("SIGWINCH");
+			return "SIGWINCH";
 		case (SIGPOLL):
-			printf("SIGPOLL");
+			return "SIGPOLL";
 		case (SIGPWR):
-			printf("SIGPWR");
+			return "SIGPWR";
 		case (SIGSYS):
-			printf("SIGSYS");
+			return "SIGSYS";
 		default:
-			printf(" %d", key);
+			return "unknow signal";
 	}
 }

@@ -29,7 +29,6 @@ int wait_for_syscall() {
 }
 
 void set_sigs(void) {
-
     sigemptyset(&sig);
     sigemptyset(&sig_blocker);
     sigprocmask(SIG_SETMASK, &sig, NULL);
@@ -45,26 +44,25 @@ void set_sigs(void) {
 int do_trace(pid_t child) {
     struct  user_regs_struct regs;
     int     old;
-    int      flag;
+    int     flag;
     long    ret;
 
-    old = 0;
-    flag = 0;
+    old     = 0;
+    flag    = 0;
     set_sigs();
     while (42) {
         if (wait_for_syscall() != 0) {
-            printf(" = ?\n+++ exited with");
-            get_signal_name(WEXITSTATUS(status));
-            printf("+++\n");
+            printf(" = ?\n+++ exited with %s +++\n", get_signal_name(WEXITSTATUS(status)));
             break;
         }
         ptrace(PTRACE_GETREGS, child, NULL, &regs);
-        if (old != regs.orig_rax) {
+        if (old != regs.orig_rax) 
+        {
             flag = 1;
             print_syscall(child, regs, syscalls_table[regs.orig_rax], status);
             old = regs.orig_rax;
         }
-        else if (regs.rax != SYS_exit_group && flag == 1)
+        else if (regs.rax != SYS_exit_group && flag == 1) 
         {
             flag = 0;
             print_syscall_return(regs);
@@ -73,10 +71,48 @@ int do_trace(pid_t child) {
     }
     return (0);
 }
+/* 
+    Test Erreur possible : 
+
+        File qui n'existe pas ->        strace: Can't stat 'bouya': No such file or directory.
+        File qui n'existe pas + ./ ->   strace: Can't stat 'bouya': No such file or directory.
+        File qui existe mais .txt ->    strace: Can't stat 'bouya': No such file or directory.
+        File qui existe mais .txt avec ./ -> 
+            //execve("./toto.txt", ["./toto.txt"], [ 18 vars ]) = -1 EACCES (Permission denied)
+            // fstat(2, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 0), ...}) = 0
+            // write(2, "strace: exec: Permission denied\n", 32strace: exec: Permission denied
+            // ) = 32
+            // getpid()                                = 1885
+            // exit_group(1)                           = ?
+            // +++ exited with 1 +++
+        File qui existe mais .txt avec ./ SANS LES DROIT -> 
+            //execve("./toto.txt", ["./toto.txt"], [ 18 vars ]) = -1 EACCES (Permission denied)
+            // fstat(2, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 0), ...}) = 0
+            // write(2, "strace: exec: Permission denied\n", 32strace: exec: Permission denied
+            // ) = 32
+            // getpid()                                = 1885
+            // exit_group(1)                           = ?
+            // +++ exited with 1 +++
+*/
+int is_valid_file(char *file) {
+    int fd;
+    struct stat buf;
+
+    if ((file[0] != '.' || file[1] != '/') || stat(file, &buf) == -1) {
+          printf("strace: Can't stat '%s': No such file or directory.\n", file);
+        return (-1);
+    }
+    else
+        return (1);
+}
+
 
 int main(int argc, char **argv, char **env) {
     if (argc < 2) {
         fprintf(stderr, "Usage: %s prog args\n", argv[0]);
+        exit(1);
+    }
+    else if (is_valid_file(argv[1]) == -1) {
         exit(1);
     }
     child = fork();

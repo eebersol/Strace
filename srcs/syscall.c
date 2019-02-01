@@ -11,7 +11,7 @@
 /* ************************************************************************** */
 
 #include "../includes/strace.h"
-#include "../includes/syscalls_table.h"
+
 
 pid_t 	child;
 struct  user_regs_struct regs;
