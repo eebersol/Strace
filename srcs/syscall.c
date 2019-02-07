@@ -93,10 +93,11 @@ int  print_syscall(pid_t child_tmp, struct  user_regs_struct regs_tmp, t_syscall
 	regs 	= regs_tmp;
 	status = status_tmp;
 	printf("%s(", syscall.sys_name);
+	if (syscall.sys_argc == 0)
+		printf(")");
 	for (int i = 0; i < syscall.sys_argc; i++) {
-
 		if (regs.rdi == 0 && i == 0)
-			regs.orig_rax == SYS_exit_group ? printf("0") : printf("NULL");
+			regs.orig_rax == SYS_exit_group ? printf("0") : syscall.sys_argv[0] == E_INT ? printf("0") : printf("NULL");
 		else
 		{
 			if (syscall.sys_argv[i] == E_NONE)
@@ -125,13 +126,13 @@ int  print_syscall(pid_t child_tmp, struct  user_regs_struct regs_tmp, t_syscall
 }
 
 int print_syscall_return(struct  user_regs_struct regs) {
-	if ( (long)regs.rax == -1)
-		printf(" = ?\n", (long)regs.rax);
+	if ( (long)regs.rax == -1 || regs.orig_rax == SYS_exit_group)
+		printf(" = ?\n");
 	else if ( (long)regs.rax < -1) {
 		printf(" = -1 ");
 		get_errno_name((long)regs.rax);
 	}
-	else if ((long)regs.rax > 1000 || (long)regs.rax < -1000)
+	else if ((long)regs.rax > 10000 || (long)regs.rax < -1000)
 		printf(" = %p\n", regs.rax);
 	else
 		printf(" = %ld\n", regs.rax);
