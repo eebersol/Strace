@@ -18,7 +18,7 @@
 
 int     get_errno_name(int key);
 int     print_syscall(pid_t child, struct  user_regs_struct regs, t_syscall const syscall, int status);
-int     print_syscall_return(struct  user_regs_struct regs);
+void    print_syscall_return(struct  user_regs_struct regs);
 char	*ft_strjoin(char const *s1, char const *s2);
 char	*ft_strfjoin(char *s1, char *s2);
 char    *get_signal_name(int key);

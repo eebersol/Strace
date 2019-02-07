@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   main.c                                             :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: eebersol <marvin@42.fr>                    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2018/08/17 15:35:37 by eebersol          #+#    #+#             */
+/*   Updated: 2018/08/17 15:35:38 by eebersol         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "../includes/strace.h"
 #include "../includes/syscalls_table.h"
 
@@ -56,11 +68,8 @@ void set_sigs(void) {
 }
 int do_trace(pid_t child) {
     struct  user_regs_struct regs;
-    int     old;
     int     flag;
-    long    ret;
 
-    old     = 0;
     flag    = 0;
     set_sigs();
     while (42) {
@@ -73,7 +82,6 @@ int do_trace(pid_t child) {
         if (flag == 0) {
             flag = 1;
             print_syscall(child, regs, syscalls_table[regs.orig_rax], status);
-            old = regs.orig_rax;
         }
         else if (regs.rax != SYS_exit_group && flag == 1){
             flag = 0;
@@ -84,15 +92,11 @@ int do_trace(pid_t child) {
 }
 
 char *is_valid_file(char *file, char **env) {
-    int     fd;
-    struct  stat buf;
     char    **path_line;
     char    **path_bin;
-    char    *tmp;
 
     path_line   = NULL;
     path_bin    = NULL;
-    tmp          = NULL;
     if (file[0] && file[1] && (file[0] != '.' || file[1] != '/')) {
         for(int i = 0; env[i]; i++) {   
             path_line = ft_strsplit(env[i], '=');
@@ -117,7 +121,6 @@ char *is_valid_file(char *file, char **env) {
 
 int main(int argc, char **argv, char **env) {
     char *cmd;
-    int i = 0;
 
     cmd     = NULL;
     if (argc < 2) {

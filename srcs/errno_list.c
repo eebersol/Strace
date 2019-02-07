@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   errno.c                                            :+:      :+:    :+:   */
+/*   errno_list.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: eebersol <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -16,7 +16,7 @@ int get_errno_name(int key)
 {
 	key = 0 - key;
 	switch (key) {
-		case (ENOENT):
+		case ENOENT:
 			return printf("%s\n", ft_strfjoin(ft_strjoin("ENOENT (", strerror(ENOENT)), ")"));
 		case EPERM:
 			return printf("%s\n", ft_strfjoin(ft_strjoin("EPERM (" , strerror(EPERM)), ")"));

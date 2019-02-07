@@ -12,13 +12,12 @@
 
 #include "../includes/strace.h"
 
-
 pid_t 	child;
 struct  user_regs_struct regs;
 int 	status;
 
-static int	is_print(char c) { return (isprint(c) || c == '\n' ? 1 : 0); }
-static int	is_printable(char *str) {
+int	is_print(char c) { return (isprint(c) || c == '\n' ? 1 : 0); }
+int	is_printable(char *str) {
 	int i = -1;
 
 	while (str && str[++i]) {
@@ -30,7 +29,7 @@ static int	is_printable(char *str) {
 	return (1);
 }
 
-static unsigned long long int select_register(int i) {
+unsigned long long int select_register(int i) {
 	switch(i) {
 		case 0: 	return regs.rdi;
 		case 1: 	return regs.rsi;
@@ -41,7 +40,8 @@ static unsigned long long int select_register(int i) {
 		default: 	return 0;
 	}
 }
-static int get_data(long reg) {
+
+int get_data(long reg) {
 	long 	res;
 	char 	message[10000];
 	char 	*temp;
@@ -58,17 +58,16 @@ static int get_data(long reg) {
 		if (is_printable(message))
 			printf("\"%s\"", (message));
 		else
-			printf("%p", message);
+			printf("%p", &message);
 	}
 	else
-		printf("%lld ", reg);
+		printf("%ld", reg);
 	return (1);
 			
 }
 
 void 	get_array_data(unsigned long addr, t_syscall const syscall) {
 	int		len;
-	char	*ret;
 	char	**tmp;
 
 	len = 0;
@@ -86,55 +85,51 @@ void 	get_array_data(unsigned long addr, t_syscall const syscall) {
 	}
 }
 
-
 int  print_syscall(pid_t child_tmp, struct  user_regs_struct regs_tmp, t_syscall const syscall, int status_tmp) {
+	int 	i;
 
 	child 	= child_tmp;
 	regs 	= regs_tmp;
-	status = status_tmp;
+	status 	= status_tmp;
 	printf("%s(", syscall.sys_name);
-	if (syscall.sys_argc == 0)
-		printf(")");
-	for (int i = 0; i < syscall.sys_argc; i++) {
+	for (i = 0; i < syscall.sys_argc; i++) {
 		if (regs.rdi == 0 && i == 0)
 			regs.orig_rax == SYS_exit_group ? printf("0") : syscall.sys_argv[0] == E_INT ? printf("0") : printf("NULL");
-		else
-		{
-			if (syscall.sys_argv[i] == E_NONE)
-				break;
-			else if (syscall.sys_argv[i] == E_INT)
-				printf("%ld", select_register(i));
-			else if (syscall.sys_argv[i] == E_UINT)
-				printf("%u", select_register(i));
-			else if (syscall.sys_argv[i] == E_STR)
-				get_data(select_register(i));
-			else if (syscall.sys_argv[i] == E_SPE)
-				get_array_data(select_register(i), syscall);
-			else if (syscall.sys_argv[i] == E_PTR)
-				get_data(select_register(i));
-			else if (syscall.sys_argv[i] == E_STRUCT)
-				select_register(i) ? printf("{ 0x%lx }", select_register(i)) : printf("NULL");
-			else
-				printf("ERROR");
+		else {
+			switch (syscall.sys_argv[i]) {
+				case E_INT: 	printf("%lld", select_register(i));
+					break;
+				case E_UINT: 	printf("%llu", select_register(i));
+					break;
+				case E_STR: 	get_data(select_register(i));
+					break;
+				case E_SPE: 	get_array_data(select_register(i), syscall);
+					break;
+				case E_PTR: 	get_data(select_register(i));
+					break;
+				case E_STRUCT: 	select_register(i) ? printf("{ 0x%llx }", select_register(i)) : printf("NULL");
+					break;
+				default: 		printf("ERROR");
+					break;
+			}
 		}
-			if (i + 1 < syscall.sys_argc)
-				printf(", ");
-			else
-				printf(")");
+		if (i + 1 < syscall.sys_argc)
+			printf(", ");
 	}
-	return (0);
+	printf(")");
+	return 0;
 }
 
-int print_syscall_return(struct  user_regs_struct regs) {
-	if ( (long)regs.rax == -1 || regs.orig_rax == SYS_exit_group)
+void	print_syscall_return(struct  user_regs_struct regs) {
+	if ((long)regs.rax == -1 || regs.orig_rax == SYS_exit_group)
 		printf(" = ?\n");
 	else if ( (long)regs.rax < -1) {
 		printf(" = -1 ");
 		get_errno_name((long)regs.rax);
 	}
 	else if ((long)regs.rax > 10000 || (long)regs.rax < -1000)
-		printf(" = %p\n", regs.rax);
+		printf(" = %p\n", &regs.rax);
 	else
-		printf(" = %ld\n", regs.rax);
-	return (1);
+		printf(" = %lld\n", regs.rax);
+	return ;
 }

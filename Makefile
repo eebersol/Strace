@@ -1,27 +1,25 @@
-SRC = main.c
-SRC += syscall.c
-SRC += strjoin.c
-SRC += errno.c
-SRC += syscalls_list.c
-SRC += signal.c
+NAME 	= ft_strace
+LIB		= ./libft/libft.a
+INC 	=  -I./libft/includes/ -I ./includes/
+SRC 	= main.c \
+			syscall.c \
+			errno_list.c \
+			syscalls_list.c \
+			signal_list.c \
 
+SRCDIR 	= srcs/
+OBJDIR 	= objs/
+OBJ 	= $(addprefix $(OBJDIR), $(SRC:.c=.o))
 
-LIB				= ./libft/libft.a
-NAME = ft_strace
-SRCDIR = srcs/
-OBJDIR = objs/
-OBJ = $(addprefix $(OBJDIR), $(SRC:.c=.o))
+FLAG = -Wall -Werror -Wextra
 
-
-# FLAG = -Wall -Werror -Wextra
 CG = \033[92m
 CY =  \033[93m
 CE = \033[0m
 CB = \033[34m
-INC =  -I./libft/includes/   -I ./includes/
+
 
 all: start $(NAME)
-
 
 $(NAME): $(OBJ)
 	@make -C ./libft/
