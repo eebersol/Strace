@@ -15,9 +15,14 @@
 #include <syscalls_table.h>
 #include <linux/unistd.h>
 #include <fcntl.h>
+#include "../includes/syscalls_table.h"
+
+extern pid_t   child;
+extern int     status;
+extern struct  user_regs_struct regs;
 
 int     get_errno_name(int key);
-int     print_syscall(pid_t child, struct  user_regs_struct regs, t_syscall const syscall, int status);
+int     print_syscall(t_syscall const syscall);
 void    print_syscall_return(struct  user_regs_struct regs);
 char	*ft_strjoin(char const *s1, char const *s2);
 char	*ft_strfjoin(char *s1, char *s2);

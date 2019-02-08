@@ -12,9 +12,6 @@
 
 #include "../includes/strace.h"
 
-pid_t 	child;
-struct  user_regs_struct regs;
-int 	status;
 
 int	is_print(char c) { return (isprint(c) || c == '\n' ? 1 : 0); }
 int	is_printable(char *str) {
@@ -41,29 +38,24 @@ unsigned long long int select_register(int i) {
 	}
 }
 
-int get_data(long reg) {
-	long 	res;
+void get_data(long reg) {
 	char 	message[10000];
 	char 	*temp;
-	int 	i = -1;
+	long 	res;
+	int 	i;
 
 	temp 	= message;
 	res 	= 100;
+	i 		= -1;
 	while (++i < 8) {
 		res = ptrace(PTRACE_PEEKDATA, child, reg + (i * 8), NULL);
 		memcpy(temp, &res, 8);
 		temp += 8;
 	}
-	if (!errno) {
-		if (is_printable(message))
-			printf("\"%s\"", (message));
-		else
-			printf("%p", &message);
-	}
+	if (!errno)
+		is_printable(message) ? printf("\"%s\"", (message)) : printf("%p", &message);
 	else
-		printf("%ld", reg);
-	return (1);
-			
+		printf("%ld", reg);	
 }
 
 void 	get_array_data(unsigned long addr, t_syscall const syscall) {
@@ -85,12 +77,9 @@ void 	get_array_data(unsigned long addr, t_syscall const syscall) {
 	}
 }
 
-int  print_syscall(pid_t child_tmp, struct  user_regs_struct regs_tmp, t_syscall const syscall, int status_tmp) {
+int  print_syscall(t_syscall const syscall) {
 	int 	i;
 
-	child 	= child_tmp;
-	regs 	= regs_tmp;
-	status 	= status_tmp;
 	printf("%s(", syscall.sys_name);
 	for (i = 0; i < syscall.sys_argc; i++) {
 		if (regs.rdi == 0 && i == 0)

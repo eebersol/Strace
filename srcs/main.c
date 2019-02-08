@@ -11,63 +11,68 @@
 /* ************************************************************************** */
 
 #include "../includes/strace.h"
-#include "../includes/syscalls_table.h"
 
-pid_t   child;
-int     status;
-sigset_t sig;
-sigset_t sig_blocker;
+int         status;
+struct      user_regs_struct regs;
+pid_t       child;
 
+void    add_block_signal(void) {
+    sigset_t    sig_blocker;
 
-int wait_for_syscall() {
-    while (1) {
-        ptrace(PTRACE_SYSCALL, child, 0, 0);
-        waitpid(child, &status, 0);
-        if (WIFSTOPPED(status) && WSTOPSIG(status) & 0x80)
-            return (0);
-        if (WIFSTOPPED(status)){
-            if (WSTOPSIG(status) != SIGTRAP)
-                {
-                        printf("--- %s---\n", get_signal_name(WSTOPSIG(status)));
-                        if (WSTOPSIG(status) == SIGSEGV)
-                            return (1);
-            }
-        }
-        if (WIFEXITED(status))
-            return (1); 
-        if (WIFSIGNALED(status) || WTERMSIG(status)) {
-            if (WEXITSTATUS(status) == SIGINT) {
-                printf("./ft_strace : Process detached : %d\n", child);
-                exit(0);
-            }
-            else if (WIFEXITED(status))
-              return (1);
-            else
-                return (0);
-        }
-    }
-}
-
-void add_block_signal(void) {
     sigaddset(&sig_blocker, SIGQUIT);
     sigaddset(&sig_blocker, SIGHUP);
     sigaddset(&sig_blocker, SIGINT);
     sigaddset(&sig_blocker, SIGPIPE);
     sigaddset(&sig_blocker, SIGTERM);
     sigprocmask(SIG_BLOCK, &sig_blocker, NULL);
+    return;
 }
 
-void set_sigs(void) {
-    ptrace(PTRACE_SEIZE, child, 0, 0);
+void    add_empty_signal(void) {
+    sigset_t    empty;
+
+    sigemptyset(&empty);
+    sigprocmask(SIG_SETMASK, &empty, NULL);
+    return;
+}
+
+
+void    set_sigs(void) {
     ptrace(PTRACE_SYSCALL, child, 0, 0);
-    sigemptyset(&sig);
-    sigprocmask(SIG_SETMASK, &sig, NULL);
+    ptrace(PTRACE_SEIZE, child, 0, 0);
+    add_empty_signal();
     waitpid(child, &status, 0);
     add_block_signal();
     ptrace(PTRACE_SETOPTIONS, child, 0, PTRACE_O_TRACESYSGOOD);
+    return;
 }
-int do_trace(pid_t child) {
-    struct  user_regs_struct regs;
+
+
+int     wait_for_syscall() {
+    while (1) {
+        set_sigs();
+        if (WIFEXITED(status))
+            return 1; 
+        else if (WIFSTOPPED(status) && WSTOPSIG(status) & 0x80)
+            return 0;
+        else if (WIFSTOPPED(status)){
+            if (WSTOPSIG(status) != SIGTRAP)
+                {
+                    printf("--- %s---\n", get_signal_name(WSTOPSIG(status)));
+                    if (WSTOPSIG(status) == SIGSEGV)
+                        return 1;
+            }
+        }
+        else if ((WIFSIGNALED(status) || WTERMSIG(status)) && WEXITSTATUS(status) == SIGINT) {
+                printf("./ft_strace : Process detached : %d\n", child);
+                exit(0);
+        }
+        else
+            return 0;
+    }
+}
+
+int     do_trace(pid_t child) {
     int     flag;
 
     flag    = 0;
@@ -81,14 +86,14 @@ int do_trace(pid_t child) {
         ptrace(PTRACE_GETREGS, child, NULL, &regs);
         if (flag == 0) {
             flag = 1;
-            print_syscall(child, regs, syscalls_table[regs.orig_rax], status);
+            print_syscall(syscalls_table[regs.orig_rax]);
         }
         else if (regs.rax != SYS_exit_group && flag == 1){
             flag = 0;
             print_syscall_return(regs);
         }
     }
-    return (0);
+    return 0;
 }
 
 char *is_valid_file(char *file, char **env) {
@@ -103,10 +108,9 @@ char *is_valid_file(char *file, char **env) {
             if (strcmp(path_line[0], "PATH") == 0) {
                 path_bin = ft_strsplit(path_line[1], ':');
                 for (int j = 0; path_bin[j]; j++) {
-                    path_bin[j] = ft_strjoin(path_bin[j], "/");
-                    path_bin[j] = ft_strjoin(path_bin[j], file);
+                    path_bin[j] = ft_strjoin(ft_strjoin(path_bin[j], "/"), file);
                     if (access(path_bin[j], F_OK) == 0)
-                        return (path_bin[j]);
+                        return path_bin[j];
                 }
             }
         }
@@ -114,9 +118,9 @@ char *is_valid_file(char *file, char **env) {
             printf("ft_strace: Can't stat '%s': No such file or directory\n", file);
             exit(-1);
         }
-       return (file);
+       return file;
     }
-    return (file);
+    return file;
 }
 
 int main(int argc, char **argv, char **env) {
@@ -124,7 +128,7 @@ int main(int argc, char **argv, char **env) {
 
     cmd     = NULL;
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s prog args\n", argv[0]);
+        fprintf(stderr, "Usage : %s prog args\n", argv[0]);
         exit(1);
     }
     cmd     = is_valid_file(argv[1], env);
@@ -135,7 +139,8 @@ int main(int argc, char **argv, char **env) {
     else if (child == 0) {
         kill(getpid(), SIGSTOP);
         execve(cmd, &argv[1], env);
+        fprintf(stderr, "exec fail");
     }
-    else
+    else 
         do_trace(child);
 }
