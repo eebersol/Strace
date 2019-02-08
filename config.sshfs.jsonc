@@ -5,6 +5,6 @@
 		"host": "127.0.0.1",
 		"port": 2222,
 		"username": "vagrant",
-		"privateKeyPath": "/Users/jtranchi/Desktop/eebersol/.vagrant/machines/default/virtualbox/private_key",
+		"privateKeyPath": "/Users/eebersol/Documents/strace/.vagrant/machines/default/virtualbox/private_key",
 		"password": true
 }
