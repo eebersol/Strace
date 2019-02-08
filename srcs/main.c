@@ -36,10 +36,11 @@ void    add_empty_signal(void) {
     return;
 }
 
-
-void    set_sigs(void) {
+void    set_sigs(int is_start) {
     ptrace(PTRACE_SYSCALL, child, 0, 0);
     ptrace(PTRACE_SEIZE, child, 0, 0);
+    if (is_start)
+        ptrace(PTRACE_INTERRUPT, child, 0, 0); 
     add_empty_signal();
     waitpid(child, &status, 0);
     add_block_signal();
@@ -47,25 +48,24 @@ void    set_sigs(void) {
     return;
 }
 
-
 int     wait_for_syscall() {
     while (1) {
-        set_sigs();
+        set_sigs(0);
         if (WIFEXITED(status))
             return 1; 
-        else if (WIFSTOPPED(status) && WSTOPSIG(status) & 0x80)
+        else if (WIFSTOPPED(status) && WSTOPSIG(status) & 0x80) /* Soft syscall interruption */
             return 0;
         else if (WIFSTOPPED(status)){
             if (WSTOPSIG(status) != SIGTRAP)
                 {
-                    printf("--- %s---\n", get_signal_name(WSTOPSIG(status)));
-                    if (WSTOPSIG(status) == SIGSEGV)
+                    printf("--- %s ---\n", get_signal_name(WSTOPSIG(status)));
+                    if (WSTOPSIG(status) == SIGSEGV) 
                         return 1;
             }
         }
         else if ((WIFSIGNALED(status) || WTERMSIG(status)) && WEXITSTATUS(status) == SIGINT) {
                 printf("./ft_strace : Process detached : %d\n", child);
-                exit(0);
+                exit(EXIT_FAILURE);
         }
         else
             return 0;
@@ -76,32 +76,20 @@ int     do_trace(pid_t child) {
     int     flag;
 
     flag    = 0;
-    set_sigs();
+    set_sigs(1);
     while (42) {
-        if (wait_for_syscall() != 0) {
-            print_syscall_return(regs);
-            printf("+++ exited with %d +++\n", WEXITSTATUS(status));
+        if (wait_for_syscall() != 0)
             break;
-        }
         ptrace(PTRACE_GETREGS, child, NULL, &regs);
-        if (flag == 0) {
-            flag = 1;
-            print_syscall(syscalls_table[regs.orig_rax]);
-        }
-        else if (regs.rax != SYS_exit_group && flag == 1){
-            flag = 0;
-            print_syscall_return(regs);
-        }
+        flag = flag ? print_syscall_return() : print_syscall(syscalls_table[regs.orig_rax]);
     }
     return 0;
 }
 
-char *is_valid_file(char *file, char **env) {
-    char    **path_line;
-    char    **path_bin;
+char    *is_valid_file(char *file, char **env) {
+    char    **path_line = NULL;
+    char    **path_bin  = NULL;
 
-    path_line   = NULL;
-    path_bin    = NULL;
     if (file[0] && file[1] && (file[0] != '.' || file[1] != '/')) {
         for(int i = 0; env[i]; i++) {   
             path_line = ft_strsplit(env[i], '=');
@@ -116,31 +104,29 @@ char *is_valid_file(char *file, char **env) {
         }
         if (open(file, O_RDONLY) == -1) {
             printf("ft_strace: Can't stat '%s': No such file or directory\n", file);
-            exit(-1);
+            exit(EXIT_FAILURE);
         }
        return file;
     }
     return file;
 }
 
-int main(int argc, char **argv, char **env) {
-    char *cmd;
+int     main(int argc, char **argv, char **env) {
+    char *cmd = NULL;
 
-    cmd     = NULL;
     if (argc < 2) {
         fprintf(stderr, "Usage : %s prog args\n", argv[0]);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     cmd     = is_valid_file(argv[1], env);
     child   = fork();
-
     if (child == -1)
         strerror(errno);
     else if (child == 0) {
-        kill(getpid(), SIGSTOP);
         execve(cmd, &argv[1], env);
-        fprintf(stderr, "exec fail");
     }
-    else 
+    else {
         do_trace(child);
+        print_syscall_return();
+    }
 }

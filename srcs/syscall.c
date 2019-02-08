@@ -78,10 +78,8 @@ void 	get_array_data(unsigned long addr, t_syscall const syscall) {
 }
 
 int  print_syscall(t_syscall const syscall) {
-	int 	i;
-
 	printf("%s(", syscall.sys_name);
-	for (i = 0; i < syscall.sys_argc; i++) {
+	for (int i = 0; i < syscall.sys_argc; i++) {
 		if (regs.rdi == 0 && i == 0)
 			regs.orig_rax == SYS_exit_group ? printf("0") : syscall.sys_argv[0] == E_INT ? printf("0") : printf("NULL");
 		else {
@@ -106,11 +104,20 @@ int  print_syscall(t_syscall const syscall) {
 			printf(", ");
 	}
 	printf(")");
-	return 0;
+	return 1;
 }
 
-void	print_syscall_return(struct  user_regs_struct regs) {
-	if ((long)regs.rax == -1 || regs.orig_rax == SYS_exit_group)
+int	print_syscall_return(void) {
+	if (regs.orig_rax == SYS_exit_group || WSTOPSIG(status) == SIGSEGV){
+		if (WIFEXITED(status))
+			printf("= ? \n+++ exited with %d +++\n", WEXITSTATUS(status));
+		else if (WIFSTOPPED(status))
+		{
+			printf("+++ killed by %s +++\n", get_signal_name(WSTOPSIG(status)));
+			printf("%s\n", sys_siglist[WSTOPSIG(status)]);
+		}
+	}
+	else if ((long)regs.rax == -1)
 		printf(" = ?\n");
 	else if ( (long)regs.rax < -1) {
 		printf(" = -1 ");
@@ -120,5 +127,5 @@ void	print_syscall_return(struct  user_regs_struct regs) {
 		printf(" = %p\n", &regs.rax);
 	else
 		printf(" = %lld\n", regs.rax);
-	return ;
+	return 0;
 }

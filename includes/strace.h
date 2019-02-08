@@ -21,9 +21,10 @@ extern pid_t   child;
 extern int     status;
 extern struct  user_regs_struct regs;
 
+
 int     get_errno_name(int key);
 int     print_syscall(t_syscall const syscall);
-void    print_syscall_return(struct  user_regs_struct regs);
+int     print_syscall_return(void);
 char	*ft_strjoin(char const *s1, char const *s2);
 char	*ft_strfjoin(char *s1, char *s2);
 char    *get_signal_name(int key);
