@@ -100,10 +100,8 @@ int  print_syscall(t_syscall const syscall) {
 					break;
 			}
 		}
-		if (i + 1 < syscall.sys_argc)
-			printf(", ");
+		i + 1 < syscall.sys_argc ? printf(", ") : printf(")");
 	}
-	printf(")");
 	return 1;
 }
 
@@ -112,15 +110,14 @@ int	print_syscall_return(void) {
 		if (WIFEXITED(status))
 			printf("= ? \n+++ exited with %d +++\n", WEXITSTATUS(status));
 		else if (WIFSTOPPED(status))
-		{
-			printf("+++ killed by %s +++\n", get_signal_name(WSTOPSIG(status)));
-			printf("%s\n", sys_siglist[WSTOPSIG(status)]);
-		}
+			printf("+++ killed by %s +++\n%s\n", get_signal_name(WSTOPSIG(status)), sys_siglist[WSTOPSIG(status)]);
 	}
 	else if ((long)regs.rax == -1)
 		printf(" = ?\n");
+	else if ((long)regs.rax == -516)
+		printf(" = ? ERESTART_RESTARTBLOCK (Interrupted by signal)\n");
 	else if ( (long)regs.rax < -1) {
-		printf(" = -1 ");
+		printf(" = -1");
 		get_errno_name((long)regs.rax);
 	}
 	else if ((long)regs.rax > 10000 || (long)regs.rax < -1000)

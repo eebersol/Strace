@@ -41,8 +41,8 @@ void    set_sigs(int is_start) {
     ptrace(PTRACE_SEIZE, child, 0, 0);
     if (is_start)
         ptrace(PTRACE_INTERRUPT, child, 0, 0); 
-    add_empty_signal();
     waitpid(child, &status, 0);
+    add_empty_signal();
     add_block_signal();
     ptrace(PTRACE_SETOPTIONS, child, 0, PTRACE_O_TRACESYSGOOD);
     return;
@@ -52,7 +52,7 @@ int     wait_for_syscall() {
     while (1) {
         set_sigs(0);
         if (WIFEXITED(status))
-            return 1; 
+           return 1; 
         else if (WIFSTOPPED(status) && WSTOPSIG(status) & 0x80) /* Soft syscall interruption */
             return 0;
         else if (WIFSTOPPED(status)){
@@ -61,14 +61,14 @@ int     wait_for_syscall() {
                     printf("--- %s ---\n", get_signal_name(WSTOPSIG(status)));
                     if (WSTOPSIG(status) == SIGSEGV) 
                         return 1;
+                    set_sigs(0);
             }
         }
-        else if ((WIFSIGNALED(status) || WTERMSIG(status)) && WEXITSTATUS(status) == SIGINT) {
+        if ((WIFSIGNALED(status) || WTERMSIG(status)) && (WEXITSTATUS(status) == SIGINT || WEXITSTATUS(status) == SIGHUP)) {
                 printf("./ft_strace : Process detached : %d\n", child);
                 exit(EXIT_FAILURE);
         }
-        else
-            return 0;
+        return 0;
     }
 }
 
@@ -126,6 +126,7 @@ int     main(int argc, char **argv, char **env) {
         execve(cmd, &argv[1], env);
     }
     else {
+        add_empty_signal();
         do_trace(child);
         print_syscall_return();
     }
